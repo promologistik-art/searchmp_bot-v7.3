@@ -225,6 +225,7 @@ def filter_products(products: List[Dict], criteria: Dict) -> List[Dict]:
             'name': p.get('name', '')[:100],
             'price': price,
             'revenue': rev,
+            'sales': p.get('sales', 0),
             'brand': p.get('brand', ''),
             'seller': p.get('seller', ''),
             'url': f"https://www.ozon.ru/product/{p.get('id', '')}/",
