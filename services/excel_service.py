@@ -60,9 +60,12 @@ def _apply_fixed_column_widths_like_example(worksheet):
         "U": 8.0,     # Маржа, %
         "V": 8.0,     # ROI, %
     }
-    for col, width in widths.items():
-        if col in worksheet.column_dimensions:
-            worksheet.column_dimensions[col].width = width
+    
+    for col_letter, width in widths.items():
+        try:
+            worksheet.column_dimensions[col_letter].width = width
+        except Exception:
+            pass
 
 
 def _apply_header_style(worksheet, max_row: int):
