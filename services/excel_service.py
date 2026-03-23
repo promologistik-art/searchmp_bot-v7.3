@@ -34,13 +34,30 @@ def _apply_trend_colors(worksheet, trend_column_number: int, max_row: int):
 
 
 def _apply_fixed_column_widths(worksheet):
-    """Фиксированные ширины столбцов как в образце"""
+    """Фиксированные ширины столбцов"""
     widths = {
-        "A": 34.0, "B": 19.0, "C": 28.0, "D": 11.0, "E": 11.0,
-        "F": 14.0, "G": 14.0, "H": 13.0, "I": 12.0, "J": 12.0,
-        "K": 10.0, "L": 10.0, "M": 10.0, "N": 10.0, "O": 10.0,
-        "P": 14.0, "Q": 12.0, "R": 12.0, "S": 12.0, "T": 12.0,
-        "U": 10.0, "V": 10.0,
+        "A": 17.0,   # Ссылка на Ozon
+        "B": 17.0,   # Категория
+        "C": 17.0,   # Название товара
+        "D": 10.0,   # Цена, р
+        "E": 10.0,   # Кол-во продаж
+        "F": 13.5,   # Выручка за 30 дней
+        "G": 12.0,   # Кол-во конкурентов
+        "H": 10.0,   # Тренд (3 мес)
+        "I": 10.0,   # Кол-во к закупу
+        "J": 10.0,   # Себестоимость
+        "K": 10.0,   # % Комиссии
+        "L": 10.0,   # Комиссия
+        "M": 10.0,   # Логистика
+        "N": 10.0,   # Эквайринг
+        "O": 10.0,   # Налоги
+        "P": 11.0,   # Всего расходы на единицу
+        "Q": 11.0,   # Закуп итого
+        "R": 11.0,   # Прибыль на ед
+        "S": 11.0,   # Прибыль на партию
+        "T": 11.0,   # Прибыль после налогов
+        "U": 9.0,   # Маржа, %
+        "V": 9.0,   # ROI, %
     }
     for col, width in widths.items():
         try:
@@ -264,11 +281,11 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
 
             # Маржа = Прибыль после налогов / Цена * 100 (как в образце: =IF(D4>0,T4/D4*100,""))
             if c_margin and c_profit_after_tax and c_price:
-                worksheet.cell(row=row, column=c_margin, value=f"=IF({get_column_letter(c_price)}{row}>0,{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_price)}{row}*100,\"\")")
+                worksheet.cell(row=row, column=c_margin, value=f"=IF({get_column_letter(c_price)}{row}>0,{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_price)}{row},\"\")")
 
             # ROI = Прибыль после налогов / Всего расходы * 100 (как в образце: =IF(P4>0,T4/P4*100,""))
             if c_roi and c_profit_after_tax and c_total:
-                worksheet.cell(row=row, column=c_roi, value=f"=IF({get_column_letter(c_total)}{row}>0,{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_total)}{row}*100,\"\")")
+                worksheet.cell(row=row, column=c_roi, value=f"=IF({get_column_letter(c_total)}{row}>0,{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_total)}{row},\"\")")
 
         # Цвета тренда
         if c_trend:
