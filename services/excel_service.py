@@ -2,8 +2,7 @@ import io
 import pandas as pd
 import logging
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.styles import Font, PatternFill, Alignment
 from typing import List, Dict
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ def _apply_trend_colors(worksheet, trend_column_letter: str, max_row: int):
     stable_fill = PatternFill("solid", fgColor="FFFFEB9C")  # желтый для стабильного
     na_fill = PatternFill("solid", fgColor="FFE0E0E0")      # серый для недостаточно данных
     
-    for row in range(2, max_row + 1):
+    for row in range(4, max_row + 1):
         cell = worksheet.cell(row=row, column=trend_column_letter)
         value = str(cell.value).lower() if cell.value else ""
         
@@ -36,7 +35,7 @@ def _apply_trend_colors(worksheet, trend_column_letter: str, max_row: int):
 
 
 def _apply_fixed_column_widths_like_example(worksheet):
-    """Фиксированные ширины столбцов (обновленные с учетом новых колонок)"""
+    """Фиксированные ширины столбцов"""
     widths = {
         "A": 15.86,   # Ссылка на Ozon
         "B": 19.0,    # Категория
@@ -55,7 +54,7 @@ def _apply_fixed_column_widths_like_example(worksheet):
         "O": 13.0,    # Закуп итого, р
         "P": 10.57,   # Прибыль до налогов, р
         "Q": 8.0,     # Прибыль на партию, р
-        "R": 8.0,     # План по выручке (опционально)
+        "R": 8.0,     # План по выручке, р
         "S": 8.0,     # Налоги, р
         "T": 8.0,     # Прибыль после налогов, р
         "U": 8.0,     # Маржа, %
@@ -64,56 +63,56 @@ def _apply_fixed_column_widths_like_example(worksheet):
     for col, width in widths.items():
         if col in worksheet.column_dimensions:
             worksheet.column_dimensions[col].width = width
-        else:
-            # Если колонка есть по индексу
-            col_letter = col if len(col) == 1 else col
-            if col_letter in worksheet.column_dimensions:
-                worksheet.column_dimensions[col_letter].width = width
 
 
-def _apply_header_style(worksheet):
+def _apply_header_style(worksheet, max_row: int):
+    """Применяет стиль для заголовков"""
     fill = PatternFill("solid", fgColor="FFEFEFEF")
     font = Font(bold=True)
     alignment = Alignment(vertical="center", wrap_text=True)
-    for cell in worksheet[1]:
+    
+    for col in range(1, worksheet.max_column + 1):
+        cell = worksheet.cell(row=3, column=col)
         cell.fill = fill
         cell.font = font
         cell.alignment = alignment
 
 
-def _apply_user_input_column_style(worksheet, header_names: list[str]):
+def _apply_user_input_column_style(worksheet, header_names: list[str], max_row: int):
     """Excel-like light green fill for input columns"""
     green_fill = PatternFill("solid", fgColor="FFC6EFCE")
     alignment = Alignment(vertical="center")
 
-    headers = [worksheet.cell(1, c).value for c in range(1, worksheet.max_column + 1)]
+    headers = [worksheet.cell(3, c).value for c in range(1, worksheet.max_column + 1)]
     for name in header_names:
         if name not in headers:
             continue
         col = headers.index(name) + 1
-        hcell = worksheet.cell(1, col)
+        hcell = worksheet.cell(3, col)
         hcell.fill = green_fill
         hcell.alignment = Alignment(vertical="center", wrap_text=True)
-        for row in range(2, worksheet.max_row + 1):
+        for row in range(4, max_row + 1):
             cell = worksheet.cell(row, col)
             cell.fill = green_fill
             cell.alignment = alignment
 
 
-def _add_tax_rate_cell(worksheet, max_row: int):
-    """Добавляет ячейку с налоговой ставкой в H1 и применяет её в формулах"""
-    # Устанавливаем налоговую ставку в H1 (можно будет редактировать)
-    tax_cell = worksheet.cell(row=1, column=8)  # H1
-    tax_cell.value = "Налоговая ставка"
-    tax_cell.fill = PatternFill("solid", fgColor="FFC6EFCE")
-    tax_cell.font = Font(bold=True)
+def _add_tax_rate_cell(worksheet):
+    """Добавляет ячейку с налоговой ставкой в H1 и H2"""
+    # Ячейка с названием
+    tax_label = worksheet.cell(row=1, column=8)  # H1
+    tax_label.value = "Налоговая ставка"
+    tax_label.fill = PatternFill("solid", fgColor="FFC6EFCE")
+    tax_label.font = Font(bold=True)
+    tax_label.alignment = Alignment(horizontal="center")
     
+    # Ячейка со значением ставки
     tax_rate_cell = worksheet.cell(row=2, column=8)  # H2
     tax_rate_cell.value = 0.06
     tax_rate_cell.number_format = '0%'
     tax_rate_cell.fill = PatternFill("solid", fgColor="FFC6EFCE")
+    tax_rate_cell.alignment = Alignment(horizontal="center")
     
-    # Возвращаем букву колонки для использования в формулах
     return get_column_letter(8)  # H
 
 
@@ -202,25 +201,25 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
 
         worksheet = writer.sheets['Результаты анализа']
         
-        # Добавляем ячейку с налоговой ставкой (в H1 и H2)
-        tax_col_letter = _add_tax_rate_cell(worksheet, worksheet.max_row)
+        # Добавляем ячейку с налоговой ставкой
+        tax_col_letter = _add_tax_rate_cell(worksheet)
         
-        # Сдвигаем все данные на 2 строки вниз, чтобы освободить место для налоговой ставки
+        # Вставляем 2 пустые строки сверху для налоговой ставки
         worksheet.insert_rows(0, amount=2)
         
-        # Перемещаем заголовки на строку 3
+        # Заголовки теперь на строке 3
         for col_idx, cell in enumerate(df.columns, 1):
             worksheet.cell(row=3, column=col_idx, value=cell)
         
-        # Копируем данные из временной таблицы в строки начиная с 4
+        # Копируем данные в строки начиная с 4
         for row_idx, row_data in enumerate(df.values, 4):
             for col_idx, value in enumerate(row_data, 1):
                 worksheet.cell(row=row_idx, column=col_idx, value=value)
         
-        # Получаем индексы колонок после сдвига (теперь строки начинаются с 4)
+        # Получаем индексы колонок
         headers = [worksheet.cell(3, c).value for c in range(1, worksheet.max_column + 1)]
         
-        def col_idx(name: str) -> int | None:
+        def col_idx(name: str):
             try:
                 return headers.index(name) + 1
             except ValueError:
@@ -248,8 +247,9 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
         c_trend = col_idx("Тренд")
 
         max_row = worksheet.max_row
-        tax_rate_ref = f"{tax_col_letter}2"  # H2 - ячейка с налоговой ставкой
+        tax_rate_ref = f"{tax_col_letter}2"
 
+        # Заполняем формулы для каждой строки
         for row in range(4, max_row + 1):
             # Кликабельная ссылка
             if c_link is not None:
@@ -283,7 +283,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                 worksheet.cell(row=row, column=c_total, value=f"={formula}")
 
             # Закуп итого = Кол-во к закупке * Себестоимость
-            if c_buy_total is not None and None not in (c_qty, c_cogs):
+            if c_buy_total is not None and c_qty is not None and c_cogs is not None:
                 worksheet.cell(
                     row=row,
                     column=c_buy_total,
@@ -291,7 +291,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                 )
 
             # Прибыль до налогов = Цена - Всего расходы на ед
-            if c_profit_before_tax is not None and None not in (c_price, c_total):
+            if c_profit_before_tax is not None and c_price is not None and c_total is not None:
                 worksheet.cell(
                     row=row,
                     column=c_profit_before_tax,
@@ -299,7 +299,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                 )
 
             # Прибыль на партию = Прибыль до налогов * Кол-во к закупке
-            if c_profit_batch is not None and None not in (c_profit_before_tax, c_qty):
+            if c_profit_batch is not None and c_profit_before_tax is not None and c_qty is not None:
                 worksheet.cell(
                     row=row,
                     column=c_profit_batch,
@@ -307,7 +307,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                 )
 
             # Налоги = Прибыль до налогов * Ставка налога
-            if c_tax is not None and None not in (c_profit_before_tax, c_qty):
+            if c_tax is not None and c_profit_before_tax is not None:
                 worksheet.cell(
                     row=row,
                     column=c_tax,
@@ -315,7 +315,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                 )
 
             # Прибыль после налогов = Прибыль до налогов - Налоги
-            if c_profit_after_tax is not None and None not in (c_profit_before_tax, c_tax):
+            if c_profit_after_tax is not None and c_profit_before_tax is not None and c_tax is not None:
                 worksheet.cell(
                     row=row,
                     column=c_profit_after_tax,
@@ -323,7 +323,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                 )
 
             # Маржа (%) = Прибыль после налогов / Цена * 100
-            if c_margin is not None and None not in (c_profit_after_tax, c_price):
+            if c_margin is not None and c_profit_after_tax is not None and c_price is not None:
                 worksheet.cell(
                     row=row,
                     column=c_margin,
@@ -332,7 +332,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                 )
 
             # ROI (%) = Прибыль после налогов / Всего расходы на ед * 100
-            if c_roi is not None and None not in (c_profit_after_tax, c_total):
+            if c_roi is not None and c_profit_after_tax is not None and c_total is not None:
                 worksheet.cell(
                     row=row,
                     column=c_roi,
@@ -349,7 +349,6 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
         rub_fmt = '#,##0\\ _₽'
         pct_fmt = '0%'
         
-        # Применяем форматы ко всем числовым колонкам
         for row in range(4, max_row + 1):
             if c_price is not None:
                 worksheet.cell(row=row, column=c_price).number_format = rub_fmt
@@ -384,8 +383,9 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
             if c_commission_percent is not None:
                 worksheet.cell(row=row, column=c_commission_percent).number_format = pct_fmt
 
-        _apply_header_style(worksheet)
-        _apply_user_input_column_style(worksheet, ["Кол-во к закупке", "Себестоимость"])
+        # Применяем стили
+        _apply_header_style(worksheet, max_row)
+        _apply_user_input_column_style(worksheet, ["Кол-во к закупке", "Себестоимость"], max_row)
         _apply_fixed_column_widths_like_example(worksheet)
 
     out.seek(0)
