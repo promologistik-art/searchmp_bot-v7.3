@@ -10,23 +10,22 @@ logger = logging.getLogger(__name__)
 
 def _apply_trend_colors(worksheet, trend_column_number: int, max_row: int):
     """Применяет цветовую заливку для ячеек с трендом"""
-    # Цвета
-    up_fill = PatternFill("solid", fgColor="FFC6EFCE")      # зеленый для восходящего
-    down_fill = PatternFill("solid", fgColor="FFFFC7CE")    # красный для нисходящего
-    stable_fill = PatternFill("solid", fgColor="FFFFEB9C")  # желтый для стабильного
-    na_fill = PatternFill("solid", fgColor="FFE0E0E0")      # серый для недостаточно данных
+    up_fill = PatternFill("solid", fgColor="FFC6EFCE")      # зеленый
+    down_fill = PatternFill("solid", fgColor="FFFFC7CE")    # красный
+    stable_fill = PatternFill("solid", fgColor="FFFFEB9C")  # желтый
+    na_fill = PatternFill("solid", fgColor="FFE0E0E0")      # серый
     
     for row in range(4, max_row + 1):
         cell = worksheet.cell(row=row, column=trend_column_number)
         value = str(cell.value).lower() if cell.value else ""
         
-        if value in ["вверх", "восходящий"]:
+        if value in ["восходящий", "вверх"]:
             cell.fill = up_fill
             cell.value = "↑ вверх"
-        elif value in ["вниз", "нисходящий"]:
+        elif value in ["нисходящий", "вниз"]:
             cell.fill = down_fill
             cell.value = "↓ вниз"
-        elif value in ["ровно", "стабильный"]:
+        elif value in ["стабильный", "ровно"]:
             cell.fill = stable_fill
             cell.value = "→ ровно"
         else:
@@ -34,46 +33,26 @@ def _apply_trend_colors(worksheet, trend_column_number: int, max_row: int):
             cell.value = "? нет данных"
 
 
-def _apply_fixed_column_widths_like_example(worksheet):
-    """Фиксированные ширины столбцов"""
+def _apply_fixed_column_widths(worksheet):
+    """Фиксированные ширины столбцов как в образце"""
     widths = {
-        "A": 15.86,   # Ссылка на Ozon
-        "B": 19.0,    # Категория
-        "C": 19.14,   # Название товара
-        "D": 11.0,    # Цена, р
-        "E": 19.0,    # Выручка за 30 дней
-        "F": 14.0,    # Кол-во конкурентов
-        "G": 13.0,    # Тренд
-        "H": 15.0,    # Кол-во к закупке
-        "I": 10.0,    # Себестоимость
-        "J": 12.0,    # % Комиссии
-        "K": 12.14,   # Комиссия, р
-        "L": 14.0,    # Логистика
-        "M": 13.0,    # Эквайринг, р
-        "N": 13.0,    # Всего расходы на ед, р
-        "O": 13.0,    # Закуп итого, р
-        "P": 10.57,   # Прибыль до налогов, р
-        "Q": 8.0,     # Прибыль на партию, р
-        "R": 8.0,     # План по выручке, р
-        "S": 8.0,     # Налоги, р
-        "T": 8.0,     # Прибыль после налогов, р
-        "U": 8.0,     # Маржа, %
-        "V": 8.0,     # ROI, %
+        "A": 15.86, "B": 19.0, "C": 19.14, "D": 11.0, "E": 19.0,
+        "F": 14.0, "G": 13.0, "H": 15.0, "I": 10.0, "J": 12.0,
+        "K": 12.14, "L": 14.0, "M": 13.0, "N": 13.0, "O": 13.0,
+        "P": 10.57, "Q": 8.0, "R": 8.0, "S": 8.0, "T": 8.0, "U": 8.0,
     }
-    
-    for col_letter, width in widths.items():
+    for col, width in widths.items():
         try:
-            worksheet.column_dimensions[col_letter].width = width
-        except Exception:
+            worksheet.column_dimensions[col].width = width
+        except:
             pass
 
 
-def _apply_header_style(worksheet, max_row: int):
-    """Применяет стиль для заголовков"""
+def _apply_header_style(worksheet):
+    """Стиль заголовков"""
     fill = PatternFill("solid", fgColor="FFEFEFEF")
     font = Font(bold=True)
     alignment = Alignment(vertical="center", wrap_text=True)
-    
     for col in range(1, worksheet.max_column + 1):
         cell = worksheet.cell(row=3, column=col)
         cell.fill = fill
@@ -81,42 +60,34 @@ def _apply_header_style(worksheet, max_row: int):
         cell.alignment = alignment
 
 
-def _apply_user_input_column_style(worksheet, header_names: list[str], max_row: int):
-    """Excel-like light green fill for input columns"""
+def _apply_input_columns_style(worksheet, max_row: int):
+    """Зеленые ячейки для колонок Кол-во к закупке и Себестоимость"""
     green_fill = PatternFill("solid", fgColor="FFC6EFCE")
-    alignment = Alignment(vertical="center")
-
     headers = [worksheet.cell(3, c).value for c in range(1, worksheet.max_column + 1)]
-    for name in header_names:
+    
+    for name in ["Кол-во к закупке", "Себестоимость"]:
         if name not in headers:
             continue
         col = headers.index(name) + 1
-        hcell = worksheet.cell(3, col)
-        hcell.fill = green_fill
-        hcell.alignment = Alignment(vertical="center", wrap_text=True)
         for row in range(4, max_row + 1):
-            cell = worksheet.cell(row, col)
-            cell.fill = green_fill
-            cell.alignment = alignment
+            worksheet.cell(row=row, column=col).fill = green_fill
 
 
-def _add_tax_rate_cell(worksheet):
-    """Добавляет ячейку с налоговой ставкой в H1 и H2"""
-    # Ячейка с названием
-    tax_label = worksheet.cell(row=1, column=8)  # H1
-    tax_label.value = "Налоговая ставка"
+def _add_tax_cells(worksheet):
+    """Добавляет ячейки налоговой ставки в H1 и H2"""
+    # H1
+    tax_label = worksheet.cell(row=1, column=8)
+    tax_label.value = "Налоговый режим"
     tax_label.fill = PatternFill("solid", fgColor="FFC6EFCE")
     tax_label.font = Font(bold=True)
     tax_label.alignment = Alignment(horizontal="center")
-    
-    # Ячейка со значением ставки
-    tax_rate_cell = worksheet.cell(row=2, column=8)  # H2
-    tax_rate_cell.value = 0.06
-    tax_rate_cell.number_format = '0%'
-    tax_rate_cell.fill = PatternFill("solid", fgColor="FFC6EFCE")
-    tax_rate_cell.alignment = Alignment(horizontal="center")
-    
-    return get_column_letter(8)  # H
+    # H2
+    tax_rate = worksheet.cell(row=2, column=8)
+    tax_rate.value = 0.06
+    tax_rate.number_format = '0%'
+    tax_rate.fill = PatternFill("solid", fgColor="FFC6EFCE")
+    tax_rate.alignment = Alignment(horizontal="center")
+    return get_column_letter(8)
 
 
 def create_excel_report(results: List[Dict]) -> io.BytesIO:
@@ -124,23 +95,19 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
     if not results:
         df = pd.DataFrame([{'Статус': 'Нет данных'}])
     else:
-        if results:
-            sample = results[0]
-            logger.info(f"Пример данных: категория={sample.get('category')}, комиссия={sample.get('commission')}")
-        
         df = pd.DataFrame(results)
 
-        # Приводим входные ключи к новой структуре отчёта
+        # Переименование колонок как в образце
         df = df.rename(columns={
             "category": "Категория",
             "name": "Название товара",
             "price": "Цена, р",
             "revenue": "Выручка за 30 дней",
             "competitors": "Кол-во конкурентов",
-            "trend": "Тренд",
+            "trend": "Тренд (3 мес)",
         })
 
-        # Удаляем столбцы Бренд и Продавец
+        # Удаляем лишние колонки
         for drop_col in ("brand", "seller"):
             if drop_col in df.columns:
                 df = df.drop(columns=[drop_col])
@@ -149,29 +116,29 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
             df["Ссылка на Ozon"] = df["url"]
             df = df.drop(columns=["url"])
 
-        # Пользовательские/расчётные колонки
+        # Добавляем пользовательские колонки
         df["Кол-во к закупке"] = ""
         df["Себестоимость"] = ""
         df["% Комиссии"] = df.get("commission_percent", "")
-        df["Комиссия, р"] = df.get("commission", 0)
+        df["Комиссия"] = df.get("commission", 0)
         df["Логистика"] = df.get("logistics", 0)
-        df["Эквайринг, р"] = ""
-        df["Всего расходы на ед, р"] = ""
-        df["Закуп итого, р"] = ""
-        df["Прибыль до налогов, р"] = ""
-        df["Прибыль на партию, р"] = ""
-        df["План по выручке, р"] = ""
-        df["Налоги, р"] = ""
-        df["Прибыль после налогов, р"] = ""
+        df["Эквайринг"] = ""
+        df["Всего расходы на единицу"] = ""
+        df["Закуп итого"] = ""
+        df["Прибыль на ед"] = ""
+        df["Прибыль на партию"] = ""
+        df["План по выручке"] = ""
+        df["Налоги"] = ""
+        df["Прибыль после налогов"] = ""
         df["Маржа, %"] = ""
         df["ROI, %"] = ""
 
-        # Удаляем временные столбцы
+        # Удаляем временные колонки
         for col in ["commission", "commission_percent", "logistics"]:
             if col in df.columns:
                 df = df.drop(columns=[col])
 
-        # Итоговый порядок столбцов
+        # Порядок колонок строго как в образце
         col_order = [
             "Ссылка на Ozon",
             "Категория",
@@ -179,20 +146,20 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
             "Цена, р",
             "Выручка за 30 дней",
             "Кол-во конкурентов",
-            "Тренд",
+            "Тренд (3 мес)",
             "Кол-во к закупке",
             "Себестоимость",
             "% Комиссии",
-            "Комиссия, р",
+            "Комиссия",
             "Логистика",
-            "Эквайринг, р",
-            "Всего расходы на ед, р",
-            "Закуп итого, р",
-            "Прибыль до налогов, р",
-            "Прибыль на партию, р",
-            "План по выручке, р",
-            "Налоги, р",
-            "Прибыль после налогов, р",
+            "Эквайринг",
+            "Всего расходы на единицу",
+            "Закуп итого",
+            "Прибыль на ед",
+            "Прибыль на партию",
+            "План по выручке",
+            "Налоги",
+            "Прибыль после налогов",
             "Маржа, %",
             "ROI, %",
         ]
@@ -201,20 +168,19 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
     out = io.BytesIO()
     with pd.ExcelWriter(out, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Результаты анализа')
-
         worksheet = writer.sheets['Результаты анализа']
+
+        # Добавляем налоговые ячейки наверх
+        tax_col_letter = _add_tax_cells(worksheet)
         
-        # Добавляем ячейку с налоговой ставкой
-        tax_col_letter = _add_tax_rate_cell(worksheet)
-        
-        # Вставляем 2 пустые строки сверху для налоговой ставки
+        # Вставляем 2 пустые строки сверху
         worksheet.insert_rows(0, amount=2)
         
-        # Заголовки теперь на строке 3
+        # Заголовки на строку 3
         for col_idx, cell in enumerate(df.columns, 1):
             worksheet.cell(row=3, column=col_idx, value=cell)
         
-        # Копируем данные в строки начиная с 4
+        # Данные с 4 строки
         for row_idx, row_data in enumerate(df.values, 4):
             for col_idx, value in enumerate(row_data, 1):
                 worksheet.cell(row=row_idx, column=col_idx, value=value)
@@ -222,40 +188,38 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
         # Получаем индексы колонок
         headers = [worksheet.cell(3, c).value for c in range(1, worksheet.max_column + 1)]
         
-        def col_idx(name: str):
+        def col_idx(name):
             try:
                 return headers.index(name) + 1
             except ValueError:
                 return None
 
-        # Получаем индексы всех колонок
         c_link = col_idx("Ссылка на Ozon")
         c_price = col_idx("Цена, р")
         c_qty = col_idx("Кол-во к закупке")
         c_cogs = col_idx("Себестоимость")
-        c_commission_percent = col_idx("% Комиссии")
-        c_commission_rub = col_idx("Комиссия, р")
+        c_comm_percent = col_idx("% Комиссии")
+        c_comm_rub = col_idx("Комиссия")
         c_log = col_idx("Логистика")
-        c_acq = col_idx("Эквайринг, р")
-        c_total = col_idx("Всего расходы на ед, р")
-        c_buy_total = col_idx("Закуп итого, р")
-        c_profit_before_tax = col_idx("Прибыль до налогов, р")
-        c_profit_batch = col_idx("Прибыль на партию, р")
-        c_plan_revenue = col_idx("План по выручке, р")
-        c_tax = col_idx("Налоги, р")
-        c_profit_after_tax = col_idx("Прибыль после налогов, р")
+        c_acq = col_idx("Эквайринг")
+        c_total = col_idx("Всего расходы на единицу")
+        c_buy_total = col_idx("Закуп итого")
+        c_profit_unit = col_idx("Прибыль на ед")
+        c_profit_batch = col_idx("Прибыль на партию")
+        c_plan_revenue = col_idx("План по выручке")
+        c_tax = col_idx("Налоги")
+        c_profit_after_tax = col_idx("Прибыль после налогов")
         c_margin = col_idx("Маржа, %")
         c_roi = col_idx("ROI, %")
         c_rev30 = col_idx("Выручка за 30 дней")
-        c_trend = col_idx("Тренд")
+        c_trend = col_idx("Тренд (3 мес)")
 
         max_row = worksheet.max_row
         tax_rate_ref = f"{tax_col_letter}2"
 
-        # Заполняем формулы для каждой строки
         for row in range(4, max_row + 1):
-            # Кликабельная ссылка
-            if c_link is not None:
+            # Ссылка
+            if c_link:
                 cell = worksheet.cell(row=row, column=c_link)
                 if isinstance(cell.value, str) and cell.value.startswith("http"):
                     url = cell.value.replace('"', '""')
@@ -263,88 +227,52 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
                     cell.style = "Hyperlink"
 
             # Эквайринг = Цена * 1.5%
-            if c_acq is not None and c_price is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_acq,
-                    value=f"={get_column_letter(c_price)}{row}*0.015",
-                )
+            if c_acq and c_price:
+                worksheet.cell(row=row, column=c_acq, value=f"={get_column_letter(c_price)}{row}*0.015")
 
-            # Всего расходы на ед = Себестоимость + Комиссия + Логистика + Эквайринг
-            expense_columns = []
-            if c_cogs is not None:
-                expense_columns.append(get_column_letter(c_cogs))
-            if c_commission_rub is not None:
-                expense_columns.append(get_column_letter(c_commission_rub))
-            if c_log is not None:
-                expense_columns.append(get_column_letter(c_log))
-            if c_acq is not None:
-                expense_columns.append(get_column_letter(c_acq))
-            
-            if c_total is not None and expense_columns:
-                formula = "+".join([f"{col}{row}" for col in expense_columns])
-                worksheet.cell(row=row, column=c_total, value=f"={formula}")
+            # Всего расходы на единицу
+            expense_cols = []
+            if c_cogs:
+                expense_cols.append(get_column_letter(c_cogs))
+            if c_comm_rub:
+                expense_cols.append(get_column_letter(c_comm_rub))
+            if c_log:
+                expense_cols.append(get_column_letter(c_log))
+            if c_acq:
+                expense_cols.append(get_column_letter(c_acq))
+            if c_total and expense_cols:
+                worksheet.cell(row=row, column=c_total, value=f"={'+'.join([f'{col}{row}' for col in expense_cols])}")
 
-            # Закуп итого = Кол-во к закупке * Себестоимость
-            if c_buy_total is not None and c_qty is not None and c_cogs is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_buy_total,
-                    value=f"={get_column_letter(c_qty)}{row}*{get_column_letter(c_cogs)}{row}",
-                )
+            # Закуп итого = Кол-во * Себестоимость
+            if c_buy_total and c_qty and c_cogs:
+                worksheet.cell(row=row, column=c_buy_total, value=f"={get_column_letter(c_qty)}{row}*{get_column_letter(c_cogs)}{row}")
 
-            # Прибыль до налогов = Цена - Всего расходы на ед
-            if c_profit_before_tax is not None and c_price is not None and c_total is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_profit_before_tax,
-                    value=f"={get_column_letter(c_price)}{row}-{get_column_letter(c_total)}{row}",
-                )
+            # Прибыль на ед = Цена - Всего расходы на единицу
+            if c_profit_unit and c_price and c_total:
+                worksheet.cell(row=row, column=c_profit_unit, value=f"={get_column_letter(c_price)}{row}-{get_column_letter(c_total)}{row}")
 
-            # Прибыль на партию = Прибыль до налогов * Кол-во к закупке
-            if c_profit_batch is not None and c_profit_before_tax is not None and c_qty is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_profit_batch,
-                    value=f"={get_column_letter(c_profit_before_tax)}{row}*{get_column_letter(c_qty)}{row}",
-                )
+            # Прибыль на партию = Прибыль на ед * Кол-во
+            if c_profit_batch and c_profit_unit and c_qty:
+                worksheet.cell(row=row, column=c_profit_batch, value=f"={get_column_letter(c_profit_unit)}{row}*{get_column_letter(c_qty)}{row}")
 
-            # Налоги = Прибыль до налогов * Ставка налога
-            if c_tax is not None and c_profit_before_tax is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_tax,
-                    value=f"={get_column_letter(c_profit_before_tax)}{row}*{tax_rate_ref}",
-                )
+            # Налоги = Прибыль на ед * Ставка налога
+            if c_tax and c_profit_unit:
+                worksheet.cell(row=row, column=c_tax, value=f"={get_column_letter(c_profit_unit)}{row}*{tax_rate_ref}")
 
-            # Прибыль после налогов = Прибыль до налогов - Налоги
-            if c_profit_after_tax is not None and c_profit_before_tax is not None and c_tax is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_profit_after_tax,
-                    value=f"={get_column_letter(c_profit_before_tax)}{row}-{get_column_letter(c_tax)}{row}",
-                )
+            # Прибыль после налогов = Прибыль на ед - Налоги
+            if c_profit_after_tax and c_profit_unit and c_tax:
+                worksheet.cell(row=row, column=c_profit_after_tax, value=f"={get_column_letter(c_profit_unit)}{row}-{get_column_letter(c_tax)}{row}")
 
-            # Маржа (%) = Прибыль после налогов / Цена * 100
-            if c_margin is not None and c_profit_after_tax is not None and c_price is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_margin,
-                    value=f"=IF({get_column_letter(c_price)}{row}>0,"
-                          f"{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_price)}{row}*100,\"\")",
-                )
+            # Маржа = Прибыль после налогов / Цена * 100
+            if c_margin and c_profit_after_tax and c_price:
+                worksheet.cell(row=row, column=c_margin, value=f"=IF({get_column_letter(c_price)}{row}>0,{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_price)}{row}*100,\"\")")
 
-            # ROI (%) = Прибыль после налогов / Всего расходы на ед * 100
-            if c_roi is not None and c_profit_after_tax is not None and c_total is not None:
-                worksheet.cell(
-                    row=row,
-                    column=c_roi,
-                    value=f"=IF({get_column_letter(c_total)}{row}>0,"
-                          f"{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_total)}{row}*100,\"\")",
-                )
+            # ROI = Прибыль после налогов / Всего расходы * 100
+            if c_roi and c_profit_after_tax and c_total:
+                worksheet.cell(row=row, column=c_roi, value=f"=IF({get_column_letter(c_total)}{row}>0,{get_column_letter(c_profit_after_tax)}{row}/{get_column_letter(c_total)}{row}*100,\"\")")
 
-        # Применяем цвета для тренда
-        if c_trend is not None:
+        # Цвета тренда
+        if c_trend:
             _apply_trend_colors(worksheet, c_trend, max_row)
 
         # Форматы чисел
@@ -352,43 +280,21 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
         pct_fmt = '0%'
         
         for row in range(4, max_row + 1):
-            if c_price is not None:
-                worksheet.cell(row=row, column=c_price).number_format = rub_fmt
-            if c_rev30 is not None:
-                worksheet.cell(row=row, column=c_rev30).number_format = rub_fmt
-            if c_cogs is not None:
-                worksheet.cell(row=row, column=c_cogs).number_format = rub_fmt
-            if c_commission_rub is not None:
-                worksheet.cell(row=row, column=c_commission_rub).number_format = rub_fmt
-            if c_log is not None:
-                worksheet.cell(row=row, column=c_log).number_format = rub_fmt
-            if c_acq is not None:
-                worksheet.cell(row=row, column=c_acq).number_format = rub_fmt
-            if c_total is not None:
-                worksheet.cell(row=row, column=c_total).number_format = rub_fmt
-            if c_buy_total is not None:
-                worksheet.cell(row=row, column=c_buy_total).number_format = rub_fmt
-            if c_profit_before_tax is not None:
-                worksheet.cell(row=row, column=c_profit_before_tax).number_format = rub_fmt
-            if c_profit_batch is not None:
-                worksheet.cell(row=row, column=c_profit_batch).number_format = rub_fmt
-            if c_plan_revenue is not None:
-                worksheet.cell(row=row, column=c_plan_revenue).number_format = rub_fmt
-            if c_tax is not None:
-                worksheet.cell(row=row, column=c_tax).number_format = rub_fmt
-            if c_profit_after_tax is not None:
-                worksheet.cell(row=row, column=c_profit_after_tax).number_format = rub_fmt
-            if c_margin is not None:
-                worksheet.cell(row=row, column=c_margin).number_format = pct_fmt
-            if c_roi is not None:
-                worksheet.cell(row=row, column=c_roi).number_format = pct_fmt
-            if c_commission_percent is not None:
-                worksheet.cell(row=row, column=c_commission_percent).number_format = pct_fmt
+            for c, fmt in [
+                (c_price, rub_fmt), (c_rev30, rub_fmt), (c_cogs, rub_fmt),
+                (c_comm_rub, rub_fmt), (c_log, rub_fmt), (c_acq, rub_fmt),
+                (c_total, rub_fmt), (c_buy_total, rub_fmt), (c_profit_unit, rub_fmt),
+                (c_profit_batch, rub_fmt), (c_plan_revenue, rub_fmt), (c_tax, rub_fmt),
+                (c_profit_after_tax, rub_fmt), (c_comm_percent, pct_fmt),
+                (c_margin, pct_fmt), (c_roi, pct_fmt)
+            ]:
+                if c:
+                    worksheet.cell(row=row, column=c).number_format = fmt
 
-        # Применяем стили
-        _apply_header_style(worksheet, max_row)
-        _apply_user_input_column_style(worksheet, ["Кол-во к закупке", "Себестоимость"], max_row)
-        _apply_fixed_column_widths_like_example(worksheet)
+        # Стили
+        _apply_header_style(worksheet)
+        _apply_input_columns_style(worksheet, max_row)
+        _apply_fixed_column_widths(worksheet)
 
     out.seek(0)
     return out
