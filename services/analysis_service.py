@@ -22,6 +22,49 @@ from admin_notify import notify_admin_analyze
 from services.logistics_service import LogisticsCalculator
 
 
+def calculate_trend_from_graph(graph_data: list) -> str:
+    """
+    Рассчитывает тренд на основе массива значений выручки за период
+    
+    Args:
+        graph_data: список значений выручки по дням (revenue_graph)
+    
+    Returns:
+        'восходящий', 'стабильный', 'нисходящий' или 'недостаточно данных'
+    """
+    if not graph_data or len(graph_data) < 7:
+        return 'недостаточно данных'
+    
+    # Убираем нулевые значения в начале (могли быть дни без продаж)
+    non_zero = [x for x in graph_data if x > 0]
+    if len(non_zero) < 5:
+        return 'недостаточно данных'
+    
+    # Берем последние 14 дней или весь массив, если меньше
+    period = min(14, len(graph_data))
+    recent = graph_data[-period:]
+    
+    # Разбиваем на две половины
+    split = len(recent) // 2
+    first_half = recent[:split]
+    second_half = recent[split:]
+    
+    avg_first = sum(first_half) / len(first_half) if first_half else 0
+    avg_second = sum(second_half) / len(second_half) if second_half else 0
+    
+    if avg_first == 0:
+        return 'стабильный' if avg_second == 0 else 'восходящий'
+    
+    ratio = avg_second / avg_first
+    
+    if ratio > 1.15:
+        return 'восходящий'
+    elif ratio < 0.85:
+        return 'нисходящий'
+    else:
+        return 'стабильный'
+
+
 class CommissionCalculator:
     """
     Калькулятор комиссий на основе файла comcat.xlsx
@@ -178,12 +221,14 @@ def filter_products(products: List[Dict], criteria: Dict) -> List[Dict]:
         if rev < criteria['min_revenue']:
             continue
         filtered.append({
+            'id': p.get('id', ''),
             'name': p.get('name', '')[:100],
             'price': price,
             'revenue': rev,
             'brand': p.get('brand', ''),
             'seller': p.get('seller', ''),
-            'url': f"https://www.ozon.ru/product/{p.get('id', '')}/"
+            'url': f"https://www.ozon.ru/product/{p.get('id', '')}/",
+            'revenue_graph': p.get('revenue_graph', [])  # Сохраняем график для расчета тренда
         })
         if len(filtered) >= 50:
             break
@@ -368,6 +413,10 @@ async def analyze_command(update, context, admin_ids, admin_usernames):
             if results:
                 for r in results:
                     r['category'] = category_name
+                    
+                    # РАСЧЁТ ТРЕНДА
+                    revenue_graph = r.get('revenue_graph', [])
+                    r['trend'] = calculate_trend_from_graph(revenue_graph)
                     
                     # РАСЧЁТ КОМИССИИ (процент и рубли)
                     commission_percent = commission_calc.get_commission_percent(category_name, r['price'])
