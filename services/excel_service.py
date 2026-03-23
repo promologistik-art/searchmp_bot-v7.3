@@ -15,7 +15,7 @@ def _apply_trend_colors(worksheet, trend_column_number: int, max_row: int):
     stable_fill = PatternFill("solid", fgColor="FFFFEB9C")
     na_fill = PatternFill("solid", fgColor="FFE0E0E0")
     
-    for row in range(3, max_row + 1):
+    for row in range(4, max_row + 1):
         cell = worksheet.cell(row=row, column=trend_column_number)
         value = str(cell.value).lower() if cell.value else ""
         
@@ -79,7 +79,6 @@ def _add_top_rows(worksheet):
     """Добавляет строки 1-2 как в образце"""
     # Строка 1: желтая инструкция
     worksheet.cell(row=1, column=1, value="Редактируйте только зеленые ячейки")
-    worksheet.cell(row=1, column=1).fill = PatternFill("solid", fgColor="FFFFEB9C")
     worksheet.cell(row=1, column=1).font = Font(bold=True)
     
     # Строка 2: налог
@@ -119,7 +118,7 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
         # Пользовательские/расчётные колонки
         df["Кол-во к закупу"] = ""
         df["Себестоимость"] = ""
-        df["% Комиссии"] = df.get("commission_percent", "")
+        df["% Комиссии"] = df.get("commission_percent", "")/100
         df["Комиссия"] = df.get("commission", 0)
         df["Логистика"] = df.get("logistics", 0)
         df["Эквайринг"] = ""
@@ -285,6 +284,10 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
             # Проценты
             if c_comm_percent:
                 worksheet.cell(row=row, column=c_comm_percent).number_format = '0%'
+            if c_margin:
+                worksheet.cell(row=row, column=c_margin).number_format = '0%'
+            if c_roi:
+                worksheet.cell(row=row, column=c_roi).number_format = '0%'
             # Целые числа для продаж
             if c_sales_qty:
                 worksheet.cell(row=row, column=c_sales_qty).number_format = '#,##0'
