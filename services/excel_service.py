@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 def _apply_trend_colors(worksheet, trend_column_number: int, max_row: int):
     """Применяет цветовую заливку для ячеек с трендом"""
-    up_fill = PatternFill("solid", fgColor="FFC6EFCE")      # зеленый
-    down_fill = PatternFill("solid", fgColor="FFFFC7CE")    # красный
-    stable_fill = PatternFill("solid", fgColor="FFFFEB9C")  # желтый
-    na_fill = PatternFill("solid", fgColor="FFE0E0E0")      # серый
+    up_fill = PatternFill("solid", fgColor="FFC6EFCE")
+    down_fill = PatternFill("solid", fgColor="FFFFC7CE")
+    stable_fill = PatternFill("solid", fgColor="FFFFEB9C")
+    na_fill = PatternFill("solid", fgColor="FFE0E0E0")
     
     for row in range(4, max_row + 1):
         cell = worksheet.cell(row=row, column=trend_column_number)
@@ -170,11 +170,11 @@ def create_excel_report(results: List[Dict]) -> io.BytesIO:
         df.to_excel(writer, index=False, sheet_name='Результаты анализа')
         worksheet = writer.sheets['Результаты анализа']
 
-        # Добавляем налоговые ячейки наверх
-        tax_col_letter = _add_tax_cells(worksheet)
-        
-        # Вставляем 2 пустые строки сверху
+        # Сначала вставляем 2 пустые строки сверху
         worksheet.insert_rows(0, amount=2)
+        
+        # ПОТОМ добавляем налоговые ячейки (теперь они будут на строках 1-2)
+        tax_col_letter = _add_tax_cells(worksheet)
         
         # Заголовки на строку 3
         for col_idx, cell in enumerate(df.columns, 1):
