@@ -55,13 +55,14 @@ def _apply_fixed_column_widths(worksheet):
         "Q": 11.0,   # Закуп итого
         "R": 11.0,   # Прибыль на ед
         "S": 11.0,   # Прибыль на партию
-        "T": 11.0,   # Прибыль после налогов
+        "T": 11.0,   # Прибыль после налогов на ед
         "U": 9.0,   # Маржа, %
         "V": 9.0,   # ROI, %
     }
     for col, width in widths.items():
         try:
             worksheet.column_dimensions[col].width = width
+            worksheet.column_dimensions[col].auto_size = False
         except:
             pass
 
